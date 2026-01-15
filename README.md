@@ -3,13 +3,15 @@ Timeline Aubervilliers - EXIF Reader
 Une application web interactive et élégante permettant de visualiser une série de photographies sous forme de frise chronologique dynamique. Le projet extrait automatiquement les métadonnées EXIF (Date, Heure, Auteur, Appareil) pour organiser et documenter les images.
 
 ✨ Fonctionnalités
-- Extraction EXIF Automatique : Utilise la bibliothèque exif-js pour lire les données cachées des fichiers JPEG (Heure de prise de vue, Artiste, Lieu, Modèle d'appareil).
+- **Extraction EXIF Automatique :** Utilise la bibliothèque exif-js pour lire les données cachées des fichiers JPEG (Heure de prise de vue, Artiste, Lieu, Modèle d'appareil).
 
-- Tri Chronologique : Les photos sont automatiquement triées par heure, de la plus ancienne à la plus récente, peu importe l'ordre d'importation.
-- Interface Immersive : Design sombre (Dark Mode) avec des animations fluides en CSS (Bézier cubique).
-- Focus Dynamique : Au clic ou au survol, l'image sélectionnée s'agrandit pour révéler les détails techniques.
-- Navigation Intuitive : Supporte le Glisser-Déposer (Drag & Drop) et la sélection classique de fichiers.
-- Responsive & Accessible : Conteneur à défilement horizontal optimisé et gestion de la navigation au clavier.
+- **Tri Chronologique :** Les photos sont automatiquement triées par heure, de la plus ancienne à la plus récente, peu importe l'ordre d'importation.
+- **Interface Immersive :** Design sombre (Dark Mode) avec des animations fluides en CSS (Bézier cubique).
+- **Focus Dynamique :** Au clic ou au survol, l'image sélectionnée s'agrandit pour révéler les détails techniques.
+- **Navigation Intuitive** : Supporte le Glisser-Déposer (Drag & Drop) et la sélection classique de fichiers.
+- **Responsive & Accessible** : Conteneur à défilement horizontal optimisé et gestion de la navigation au clavier.
+- **Bouton Supprimer** : Une fois une image sélectionnée (agrandie), un bouton rouge "SUPPRIMER" apparaît en haut à droite de celle-ci pour la retirer de la timeline.
+- **Corbeille interactive** : Vous pouvez glisser une image (Drag & Drop) directement vers l'icône de la corbeille située en bas de la page pour l'effacer.
 
 🛠️ Technologies utilisées
 - HTML5 / CSS3 : Structure et mise en page (Flexbox, CSS Variables).

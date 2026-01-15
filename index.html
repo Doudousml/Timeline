@@ -8,6 +8,7 @@
         :root {
             --bg-color: #0a0a0a;
             --accent-color: #00a2ff;
+            --danger-color: #ff4b4b;
             --text-main: #ffffff;
             --text-sub: #bbbbbb;
         }
@@ -25,7 +26,7 @@
             overflow: hidden;
         }
 
-        /* Zone de dépôt */
+        /* En-tête avec bouton d'origine */
         .header {
             position: absolute;
             top: 30px;
@@ -52,7 +53,45 @@
             background: rgba(0, 162, 255, 0.05);
         }
 
-        /* Galerie sans espaces */
+        /* --- CORBEILLE EN BAS --- */
+        .footer-tools {
+            position: absolute;
+            bottom: 30px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #trash-zone {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 75, 75, 0.1);
+            border: 2px solid var(--danger-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 1.8rem;
+        }
+
+        #trash-zone.drag-over {
+            background: var(--danger-color);
+            transform: scale(1.3);
+            box-shadow: 0 0 30px var(--danger-color);
+        }
+
+        .trash-label {
+            font-size: 0.7rem;
+            color: var(--danger-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Galerie */
         .timeline-container {
             display: flex;
             align-items: center;
@@ -84,7 +123,6 @@
             transition: 0.7s;
         }
 
-        /* Agrandissement au survol et sélection */
         .photo-card:hover, .photo-card.selected {
             flex: 0 0 35vw;
             height: 550px;
@@ -95,12 +133,31 @@
             filter: grayscale(0) brightness(1);
         }
 
-        /* Overlay Infos (Accessibilité renforcée) */
+        /* Bouton supprimer sur la carte sélectionnée */
+        .delete-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            opacity: 0;
+            transition: 0.3s;
+            z-index: 20;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .photo-card.selected .delete-btn {
+            opacity: 1;
+        }
+
         .exif-info {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             padding: 40px 25px 25px;
             background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%);
             opacity: 0;
@@ -114,34 +171,13 @@
             transform: translateY(0);
         }
 
-        .date-text { 
-            color: var(--accent-color); 
-            font-weight: 700; 
-            font-size: 1.2rem;
-            margin-bottom: 4px;
-        }
-
-        .meta-line {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 2px;
-        }
-
-        .author-name { color: white; font-weight: 600; }
-        .location-text { color: var(--text-sub); font-style: italic; }
-
-        /* Point indicateur */
+        .date-text { color: var(--accent-color); font-weight: 700; font-size: 1.2rem; }
+        .meta-line { display: block; font-size: 0.9rem; }
         .dot {
-            position: absolute;
-            bottom: -50px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 10px;
-            height: 10px;
-            background: var(--accent-color);
-            border-radius: 50%;
-            box-shadow: 0 0 20px var(--accent-color);
-            display: none;
+            position: absolute; bottom: -50px; left: 50%;
+            transform: translateX(-50%); width: 10px; height: 10px;
+            background: var(--accent-color); border-radius: 50%;
+            box-shadow: 0 0 20px var(--accent-color); display: none;
         }
         .photo-card.selected .dot { display: block; }
 
@@ -160,21 +196,28 @@
         <div style="width: 100%; text-align: center; color: #333;">En attente de fichiers...</div>
     </div>
 
+    <div class="footer-tools">
+        <div id="trash-zone" title="Glissez une image ici pour supprimer">🗑️</div>
+        <span class="trash-label">Corbeille</span>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
 
     <script>
         const dropZone = document.getElementById('drop-zone');
+        const trashZone = document.getElementById('trash-zone');
         const fileInput = document.getElementById('file-input');
         const gallery = document.getElementById('gallery');
         let allPhotos = [];
+        let draggedItemIndex = null;
 
         dropZone.onclick = () => fileInput.click();
 
         const handleFiles = async (files) => {
             for (let file of files) {
                 const exifData = await getExif(file);
-                
                 allPhotos.push({
+                    id: Date.now() + Math.random(),
                     url: URL.createObjectURL(file),
                     date: exifData.date || new Date(file.lastModified),
                     author: exifData.artist || "Place inconnu",
@@ -182,8 +225,6 @@
                     model: exifData.model || "Appareil photo"
                 });
             }
-
-            // TRI CHRONOLOGIQUE PAR HEURE
             allPhotos.sort((a, b) => a.date - b.date);
             render();
         };
@@ -196,52 +237,78 @@
                     const p = d.split(/[ :]/);
                     dateObj = new Date(p[0], p[1]-1, p[2], p[3], p[4], p[5]);
                 }
-                
                 res({ 
                     date: dateObj, 
                     model: EXIF.getTag(this, "Model"),
-                    artist: EXIF.getTag(this, "Artist"),    // Champ Auteur
-                    copyright: EXIF.getTag(this, "Copyright") // Champ Adresse/Copyright
+                    artist: EXIF.getTag(this, "Artist"),
+                    copyright: EXIF.getTag(this, "Copyright")
                 });
             });
         });
 
+        const deletePhoto = (id) => {
+            allPhotos = allPhotos.filter(p => p.id !== id);
+            render();
+        };
+
         const render = () => {
             gallery.innerHTML = '';
-            allPhotos.forEach((p, index) => {
+            if(allPhotos.length === 0) {
+                gallery.innerHTML = '<div style="width: 100%; text-align: center; color: #333;">En attente de fichiers...</div>';
+                return;
+            }
+
+            allPhotos.forEach((p) => {
                 const card = document.createElement('div');
                 card.className = 'photo-card';
-                card.setAttribute('tabindex', '0'); // Accessibilité clavier
+                card.draggable = true;
 
                 const timeStr = p.date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
                 const dateStr = p.date.toLocaleDateString('fr-FR');
 
                 card.innerHTML = `
-                    <img src="${p.url}" alt="Photo prise le ${dateStr} à ${timeStr}">
+                    <button class="delete-btn">SUPPRIMER</button>
+                    <img src="${p.url}" alt="Photo">
                     <div class="exif-info">
                         <div class="date-text">${timeStr}</div>
-                        <span class="meta-line author-name"> ${p.author}</span>
+                        <span class="meta-line author-name">${p.author}</span>
                         <span class="meta-line location-text">${p.copyright}</span>
                         <span class="meta-line" style="font-size:0.7rem; color:#666; margin-top:5px;">${dateStr} | ${p.model}</span>
                     </div>
                     <div class="dot"></div>
                 `;
 
-                // Interaction
-                const activate = () => {
+                card.querySelector('.delete-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    deletePhoto(p.id);
+                };
+
+                card.ondragstart = () => { draggedItemIndex = p.id; card.style.opacity = "0.3"; };
+                card.ondragend = () => { card.style.opacity = "1"; };
+
+                card.onclick = () => {
                     document.querySelectorAll('.photo-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                     card.scrollIntoView({ behavior: 'smooth', inline: 'center' });
                 };
 
-                card.onclick = activate;
-                card.onkeypress = (e) => { if(e.key === 'Enter') activate(); };
-
                 gallery.appendChild(card);
             });
         };
 
-        // Drag and Drop events
+        // Événements Corbeille
+        trashZone.ondragover = (e) => { e.preventDefault(); trashZone.classList.add('drag-over'); };
+        trashZone.ondragleave = () => { trashZone.classList.remove('drag-over'); };
+        trashZone.ondrop = (e) => {
+            e.preventDefault();
+            trashZone.classList.remove('drag-over');
+            if(draggedItemIndex !== null) {
+                deletePhoto(draggedItemIndex);
+                draggedItemIndex = null;
+            }
+        };
+
+        // Drag and Drop global
         dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor = "#00a2ff"; };
         dropZone.ondragleave = () => { dropZone.style.borderColor = "#333"; };
         dropZone.ondrop = (e) => {
