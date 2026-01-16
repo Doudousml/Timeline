@@ -1,6 +1,6 @@
 Timeline Aubervilliers - EXIF Reader
 
-Une application web interactive et élégante permettant de visualiser une série de photographies sous forme de frise chronologique dynamique. Le projet extrait automatiquement les métadonnées EXIF (Date, Heure, Auteur, Appareil) pour organiser et documenter les images.
+Une application web interactive et élégante permettant de visualiser une série de photographies sous forme de frise chronologique dynamique. Le projet extrait automatiquement les métadonnées EXIF (Date, Heure, Auteur, Appareil) pour organiser et documenter les images, J'ai mis sur le git des images avec des donnees EXIF pour le tester. 
 
 ✨ Fonctionnalités
 - **Extraction EXIF Automatique :** Utilise la bibliothèque exif-js pour lire les données cachées des fichiers JPEG (Heure de prise de vue, Artiste, Lieu, Modèle d'appareil).
