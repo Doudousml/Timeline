@@ -26,7 +26,7 @@
             overflow: hidden;
         }
 
-        /* En-tête */
+        /* En-tête avec bouton d'origine */
         .header {
             position: absolute;
             top: 30px;
@@ -53,7 +53,7 @@
             background: rgba(0, 162, 255, 0.05);
         }
 
-        /* Corbeille */
+        /* --- CORBEILLE EN BAS --- */
         .footer-tools {
             position: absolute;
             bottom: 30px;
@@ -84,7 +84,14 @@
             box-shadow: 0 0 30px var(--danger-color);
         }
 
-        /* Galerie Timeline */
+        .trash-label {
+            font-size: 0.7rem;
+            color: var(--danger-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Galerie */
         .timeline-container {
             display: flex;
             align-items: center;
@@ -126,6 +133,7 @@
             filter: grayscale(0) brightness(1);
         }
 
+        /* Bouton supprimer sur la carte sélectionnée */
         .delete-btn {
             position: absolute;
             top: 20px;
@@ -143,7 +151,9 @@
             font-size: 0.8rem;
         }
 
-        .photo-card.selected .delete-btn { opacity: 1; }
+        .photo-card.selected .delete-btn {
+            opacity: 1;
+        }
 
         .exif-info {
             position: absolute;
@@ -163,81 +173,46 @@
 
         .date-text { color: var(--accent-color); font-weight: 700; font-size: 1.2rem; }
         .meta-line { display: block; font-size: 0.9rem; }
+        .dot {
+            position: absolute; bottom: -50px; left: 50%;
+            transform: translateX(-50%); width: 10px; height: 10px;
+            background: var(--accent-color); border-radius: 50%;
+            box-shadow: 0 0 20px var(--accent-color); display: none;
+        }
+        .photo-card.selected .dot { display: block; }
+
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div id="drop-zone" role="button">
-            + AJOUTER D'AUTRES PHOTOS (EXIF)
+        <div id="drop-zone" role="button" aria-label="Ajouter des photos">
+            + GLISSER OU SÉLECTIONNER DES PHOTOS (EXIF)
         </div>
         <input type="file" id="file-input" multiple accept="image/jpeg" style="display:none">
     </div>
 
-    <div class="timeline-container" id="gallery">
-        <div style="width: 100%; text-align: center; color: #333;">Chargement des photos initiales...</div>
+    <div class="timeline-container" id="gallery" aria-live="polite">
+        <div style="width: 100%; text-align: center; color: #333;">En attente de fichiers...</div>
     </div>
 
     <div class="footer-tools">
-        <div id="trash-zone">🗑️</div>
+        <div id="trash-zone" title="Glissez une image ici pour supprimer">🗑️</div>
+        <span class="trash-label">Corbeille</span>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
 
     <script>
-        const gallery = document.getElementById('gallery');
-        const fileInput = document.getElementById('file-input');
         const dropZone = document.getElementById('drop-zone');
         const trashZone = document.getElementById('trash-zone');
-        
+        const fileInput = document.getElementById('file-input');
+        const gallery = document.getElementById('gallery');
         let allPhotos = [];
         let draggedItemIndex = null;
 
-        // --- 1. LISTE DE VOS PHOTOS SUR GITHUB ---
-        const initialPhotos = [
-            "canal.jpg", "huma.jpg", "vieux.jpg", "jardin.jpg", 
-            "studio.jpg", "nord.jpg", "com.jpg", "cityuniv.jpg", "maisonho.jpg"
-        ];
+        dropZone.onclick = () => fileInput.click();
 
-        // --- 2. FONCTION POUR CHARGER LES PHOTOS AU DÉMARRAGE ---
-        async function loadInitialPhotos() {
-            for (let fileName of initialPhotos) {
-                try {
-                    // Création d'un élément image invisible pour extraire l'EXIF
-                    const img = new Image();
-                    img.src = fileName;
-                    
-                    await new Promise((resolve) => {
-                        img.onload = async () => {
-                            // On extrait l'EXIF de l'image déjà présente sur le serveur
-                            EXIF.getData(img, function() {
-                                const d = EXIF.getTag(this, "DateTimeOriginal");
-                                let dateObj = new Date(); // Date par défaut si pas d'EXIF
-                                if(d) {
-                                    const p = d.split(/[ :]/);
-                                    dateObj = new Date(p[0], p[1]-1, p[2], p[3], p[4], p[5]);
-                                }
-
-                                allPhotos.push({
-                                    id: Date.now() + Math.random(),
-                                    url: fileName,
-                                    date: dateObj,
-                                    author: EXIF.getTag(this, "Artist") || "Aubervilliers",
-                                    copyright: EXIF.getTag(this, "Copyright") || "Projet Web",
-                                    model: EXIF.getTag(this, "Model") || "Fichier GitHub"
-                                });
-                                resolve();
-                            };);
-                        };
-                        img.onerror = resolve; // Continue même si une image manque
-                    });
-                } catch (e) { console.error(e); }
-            }
-            allPhotos.sort((a, b) => a.date - b.date);
-            render();
-        }
-
-        // --- LOGIQUE DE GESTION DES FICHIERS AJOUTÉS ---
         const handleFiles = async (files) => {
             for (let file of files) {
                 const exifData = await getExif(file);
@@ -245,8 +220,8 @@
                     id: Date.now() + Math.random(),
                     url: URL.createObjectURL(file),
                     date: exifData.date || new Date(file.lastModified),
-                    author: exifData.artist || "Utilisateur",
-                    copyright: exifData.copyright || "Upload manuel",
+                    author: exifData.artist || "Place inconnu",
+                    copyright: exifData.copyright || "Aubervilliers",
                     model: exifData.model || "Appareil photo"
                 });
             }
@@ -271,8 +246,18 @@
             });
         });
 
+        const deletePhoto = (id) => {
+            allPhotos = allPhotos.filter(p => p.id !== id);
+            render();
+        };
+
         const render = () => {
             gallery.innerHTML = '';
+            if(allPhotos.length === 0) {
+                gallery.innerHTML = '<div style="width: 100%; text-align: center; color: #333;">En attente de fichiers...</div>';
+                return;
+            }
+
             allPhotos.forEach((p) => {
                 const card = document.createElement('div');
                 card.className = 'photo-card';
@@ -283,13 +268,23 @@
 
                 card.innerHTML = `
                     <button class="delete-btn">SUPPRIMER</button>
-                    <img src="${p.url}">
+                    <img src="${p.url}" alt="Photo">
                     <div class="exif-info">
                         <div class="date-text">${timeStr}</div>
-                        <span class="meta-line">${p.author}</span>
-                        <span class="meta-line" style="font-size:0.7rem; color:#888;">${dateStr} | ${p.model}</span>
+                        <span class="meta-line author-name">${p.author}</span>
+                        <span class="meta-line location-text">${p.copyright}</span>
+                        <span class="meta-line" style="font-size:0.7rem; color:#666; margin-top:5px;">${dateStr} | ${p.model}</span>
                     </div>
+                    <div class="dot"></div>
                 `;
+
+                card.querySelector('.delete-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    deletePhoto(p.id);
+                };
+
+                card.ondragstart = () => { draggedItemIndex = p.id; card.style.opacity = "0.3"; };
+                card.ondragend = () => { card.style.opacity = "1"; };
 
                 card.onclick = () => {
                     document.querySelectorAll('.photo-card').forEach(c => c.classList.remove('selected'));
@@ -297,31 +292,32 @@
                     card.scrollIntoView({ behavior: 'smooth', inline: 'center' });
                 };
 
-                card.querySelector('.delete-btn').onclick = (e) => {
-                    e.stopPropagation();
-                    allPhotos = allPhotos.filter(item => item.id !== p.id);
-                    render();
-                };
-
-                card.ondragstart = () => { draggedItemIndex = p.id; };
                 gallery.appendChild(card);
             });
         };
 
-        // Event Listeners
-        dropZone.onclick = () => fileInput.click();
-        fileInput.onchange = (e) => handleFiles(e.target.files);
-        
+        // Événements Corbeille
         trashZone.ondragover = (e) => { e.preventDefault(); trashZone.classList.add('drag-over'); };
+        trashZone.ondragleave = () => { trashZone.classList.remove('drag-over'); };
         trashZone.ondrop = (e) => {
             e.preventDefault();
-            allPhotos = allPhotos.filter(p => p.id !== draggedItemIndex);
-            render();
             trashZone.classList.remove('drag-over');
+            if(draggedItemIndex !== null) {
+                deletePhoto(draggedItemIndex);
+                draggedItemIndex = null;
+            }
         };
 
-        // Lancement du chargement auto
-        loadInitialPhotos();
+        // Drag and Drop global
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor = "#00a2ff"; };
+        dropZone.ondragleave = () => { dropZone.style.borderColor = "#333"; };
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = "#333";
+            handleFiles(e.dataTransfer.files);
+        };
+        fileInput.onchange = (e) => handleFiles(e.target.files);
+
     </script>
 </body>
 </html>
