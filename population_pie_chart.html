@@ -14,14 +14,18 @@
     </style>
 </head>
 <body>
-
+     <div style="max-width: 800px; margin: 20px auto; padding: 20px; color: #bbbbbb; line-height: 1.6; border-left: 4px solid #00a2ff; background: #111; border-radius: 0 10px 10px 0;">
+        <p>
+            D'après le parcours que nous avons effectué le <strong>30/10/2025</strong> et mes remarques pendant mon chemin en vélo au <strong>Campus Condorcet</strong>, voici mon estimation du nombre de personnes présentes dans les zones géographiques que nous avons visitées :
+        </p>
+    </div>
     <h1>Répartition Estimée de la Population par Zone</h1>
     <div class="chart-container">
         <canvas id="populationPieChart"></canvas>
     </div>
 
     <script>
-        const csvFilePath = 'data_aubervilliers.csv'; // Chemin vers ton fichier CSV
+        const csvFilePath = 'https://raw.githubusercontent.com/Doudousml/Timeline/main/data_aubervilliers.csv'; // Chemin vers ton fichier CSV
 
         // Fonction pour générer des couleurs uniques
         function generateColors(num) {
